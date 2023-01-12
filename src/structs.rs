@@ -1,4 +1,5 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::collections::{LookupMap, Vector};
 use near_sdk::{near_bindgen, env};
 use near_sdk::AccountId;
 use near_sdk::serde::Serialize;
@@ -10,6 +11,7 @@ pub struct UserDetails {
     pub username: String,
     pub bio: String,
     pub image: String,
+    pub vip_price: u128
 }
 
 
@@ -25,15 +27,15 @@ pub struct Content{
 }
 
 
-#[derive(Default, BorshDeserialize, BorshSerialize)]
+#[derive( BorshDeserialize, BorshSerialize)]
 pub struct Memberlist{
-   pub regular: Vec<AccountId>,
-   pub vip: Vec<AccountId>
+   pub regular: LookupMap<AccountId,AccountId>,
+   pub vip: LookupMap<AccountId,AccountId>,
 }
 
 
 
-#[derive(Default, BorshDeserialize, BorshSerialize)]
+#[derive(BorshDeserialize, BorshSerialize)]
 
 pub struct User {
     pub details : UserDetails,
@@ -56,6 +58,7 @@ impl User {
         username: username,
         bio: bio,
         image: image,
+        vip_price: 0
        };
 
        let transactions = Transactions {
@@ -67,8 +70,8 @@ impl User {
        };
 
        let members = Memberlist {
-        regular: vec![],
-        vip: vec![]
+        regular: LookupMap::new(b"m".to_vec()),
+        vip: LookupMap::new(b"m".to_vec())
        };
 
        //CREATING THE USER ACCOUNT 
