@@ -267,7 +267,10 @@ impl Contract {
       .transfer(vip_price)
       .then(
         Promise::new(current_account_id())
-        .function_call("callback_for_subscription".to_string(), vec![encode(&subscriber_accountid.try_to_vec().unwrap()).parse().unwrap(), encode(subscriber_accountid.try_to_vec().unwrap()).parse().unwrap()], NO_DEPOSIT, CALL_GAS)
+        .function_call("callback_for_subscription".to_string(),
+         vec![encode(&subscriber_accountid.try_to_vec().unwrap()).parse().unwrap(), encode(subscriber_accountid.try_to_vec().unwrap()).parse().unwrap()], 
+         NO_DEPOSIT, 
+         CALL_GAS)
       );
     }else{
       log!("you cant subscribe to your self")
