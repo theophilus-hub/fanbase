@@ -25,8 +25,16 @@ pub struct Contract {
     links : LookupMap<AccountId, AccountId>
 }
 
+
+
+
+//CONSTANTS//
+//.........//
 const NO_DEPOSIT: u128 = 0;
 const CALL_GAS: Gas = Gas(5_000_000_000_000);
+
+
+
 
 //CONTRACT DEFAULT STATE//
 //......................//
@@ -263,15 +271,17 @@ impl Contract {
       assert!(balance >= vip_price, "Insufficient balance");
       
       if creator_accountid != predecessor_account_id() {
-      Promise::new(creator_accountid)
-      .transfer(vip_price)
-      .then(
-        Promise::new(current_account_id())
-        .function_call("callback_for_subscription".to_string(),
-         vec![encode(&subscriber_accountid.try_to_vec().unwrap()).parse().unwrap(), encode(subscriber_accountid.try_to_vec().unwrap()).parse().unwrap()], 
-         NO_DEPOSIT, 
-         CALL_GAS)
-      );
+
+        Promise::new(creator_accountid)
+        .transfer(vip_price)
+        .then(
+          Promise::new(current_account_id())
+          .function_call("callback_for_subscription".to_string(),
+          vec![encode(&subscriber_accountid.try_to_vec().unwrap()).parse().unwrap(), encode(subscriber_accountid.try_to_vec().unwrap()).parse().unwrap()], 
+          NO_DEPOSIT, 
+          CALL_GAS)
+        );
+
     }else{
       log!("you cant subscribe to your self")
     }
