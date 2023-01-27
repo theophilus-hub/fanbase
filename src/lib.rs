@@ -1,15 +1,18 @@
 
 
+
 //NECESSARY IMPORTATIONS//
 //......................//
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{Vector, LookupMap};
-use near_sdk::{near_bindgen, AccountId, Promise, PromiseResult};
+use near_sdk::{near_bindgen, AccountId, Promise, PromiseResult, PromiseError, log, Gas};
 use near_sdk::json_types::{U128};
 use near_sdk::PanicOnDefault;
-use near_sdk::env::{predecessor_account_id, signer_account_id, account_balance, self};
+use near_sdk::env::{current_account_id ,predecessor_account_id, signer_account_id, account_balance, self};
 mod structs;
 use structs::{UserDetails,Transactions, Content, Memberlist, User};
+use near_sdk::serde_json::to_vec;
+use near_sdk::base64::encode;
 
 
 
@@ -22,7 +25,8 @@ pub struct Contract {
     links : LookupMap<AccountId, AccountId>
 }
 
-
+const NO_DEPOSIT: u128 = 0;
+const CALL_GAS: Gas = Gas(5_000_000_000_000);
 
 //CONTRACT DEFAULT STATE//
 //......................//
@@ -199,7 +203,9 @@ impl Contract {
       // self
       // .links
       // .insert(&predecessor_account_id(), &creator_accountid);
-     }
+     }else{
+      log!("you cant follow to your self")
+    }
     }
 
     
@@ -214,6 +220,7 @@ impl Contract {
 
 
 
+
     //SET SUBSCRIPTION PRICE FUNCTION  //
     //.................................//
     pub fn set_vip_price(&self, price: u128){
@@ -225,6 +232,7 @@ impl Contract {
       .details
       .vip_price = price;
     }
+
 
 
 
@@ -246,33 +254,58 @@ impl Contract {
 
     // SUBSCRIPTION FUNCTION  //
     //........................//
-
-    fn check_promise_result(result: PromiseResult) {
-      match result {
-        PromiseResult::NotReady => unreachable!(),
-
-          PromiseResult::Successful(val)=> {
-              // The promise was successful
-              // Do something here to handle the success case
-          }
-          PromiseResult::Failed => {
-              // The promise failed
-              // Do something here to handle the error case
-          }
-      }
-  }
-
-    #[result_serializer(borsh)]
     #[payable]
-    pub fn subscribe(&mut self, query_account: AccountId) {
+    pub fn subscribe(&mut self, creator_accountid : AccountId, subscriber_accountid: AccountId) {
 
-      let vip_price = self.get_vip_price(query_account.clone());
+      let vip_price = self.get_vip_price(creator_accountid.clone());
       let balance = account_balance();
 
       assert!(balance >= vip_price, "Insufficient balance");
-      let promise_object = Promise::new(query_account).transfer(vip_price);
-    
       
+      if creator_accountid != predecessor_account_id() {
+      Promise::new(creator_accountid)
+      .transfer(vip_price)
+      .then(
+        Promise::new(current_account_id())
+        .function_call("callback_for_subscription".to_string(), vec![encode(&subscriber_accountid.try_to_vec().unwrap()).parse().unwrap(), encode(subscriber_accountid.try_to_vec().unwrap()).parse().unwrap()], NO_DEPOSIT, CALL_GAS)
+      );
+    }else{
+      log!("you cant subscribe to your self")
     }
+  
+  }
+
+
+
+
+    //CHECK FOR SUBSCRIPTION PAYMENT FUNCTION  //
+    //.........................................//
+  #[private]
+  pub fn callback_for_subscription(
+      &self,
+      #[callback_result] result: Result<(),
+      PromiseError>,creator_accountid : AccountId,
+       subscriber_accountid: AccountId
+      ) {
+
+    if result.is_err(){
+        log!("Something went wrong")
+    }else{
+
+        self
+        .acc_collection
+        .get(&creator_accountid)
+        .unwrap()
+        .members
+        .vip
+        .insert(&subscriber_accountid, &creator_accountid);
+    }
+  }
+
+
 
 }
+
+
+
+
